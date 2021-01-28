@@ -6,8 +6,18 @@ export default class MyMedia {
     private speakerId: string = '';
     private isEchoCancellation: boolean = false;
     private isNoiseSuppression: boolean = false;
+    private audio: any;
+    private myStream: MediaStream | null = null;
+
+    private privateAudioContext: AudioContext | null = null;
+    private myGainNode: GainNode | null = null;
+
+    private mumbleClient: any = null;
+    private audioElement: HTMLMediaElement | null = null;
+    private remotePeerConnection: RTCPeerConnection | null = null;
 
     constructor() {
+        this.init();
     }
 
     public async getListModelListOfMyDevices() {
@@ -25,6 +35,60 @@ export default class MyMedia {
         } catch (error) {
             alert('enumerateDevices error : ' + error);
         }
+    }
+
+    public changeSpeaker(deviceId: string): void {
+        if (deviceId) {
+            this.speakerId = deviceId;
+
+            if (this.audio) {
+                // @ts-ignore
+                this.audio.setSinkId(deviceId)
+                    .then(() => {
+                        console.log(`Success, audio output device attached: ${deviceId}`);
+                    })
+                    .catch((error: any) => {
+                        console.error('attachSinkId', error);
+                    });
+            }
+        }
+    }
+
+    public async changeMyStream() {
+        const audioTrack = this.myStream.getAudioTracks()[0];
+        const audioSender = this.remotePeerConnection.getSenders().find((sender: RTCRtpSender) => sender.track.kind === audioTrack.kind);
+
+        this.myStream = await this.getMyMedia();
+        this.modifyGain();
+
+        const newTrack = this.myStream.getAudioTracks()[0];
+        audioSender.replaceTrack(newTrack);
+    }
+
+    private async init() {
+        this.myStream = await this.getMyMedia();
+    }
+
+    private modifyGain(): void {
+        this.myGainNode = this.audioContext.createGain();
+
+        const oldTrack = this.myStream.getAudioTracks()[0];
+        const mediaSource = this.audioContext.createMediaStreamSource(this.myStream);
+        const destination = this.audioContext.createMediaStreamDestination();
+        this.myGainNode.gain.value = 0.5; //defaut 0.25
+
+        mediaSource.connect(this.myGainNode).connect(destination);
+        this.myStream.removeTrack(oldTrack);
+
+        const myMic = destination.stream.getAudioTracks()[0];
+        this.myStream.addTrack(myMic);
+    }
+
+    private get audioContext(): AudioContext {
+        if (!this.privateAudioContext) {
+            this.privateAudioContext = new AudioContext();
+        }
+        return this.privateAudioContext
     }
 
     private getListModel(deviceDataList: Array<MediaDeviceInfo>, kind: string, currentDeviceId: string): Array<DeviceInfo> {
