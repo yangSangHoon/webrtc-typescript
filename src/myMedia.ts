@@ -16,10 +16,6 @@ export default class MyMedia {
     private audioElement: HTMLMediaElement = null;
     private remotePeerConnection: RTCPeerConnection = null;
 
-    constructor() {
-        this.init();
-    }
-
     public set peer(rTCPeerConnection: RTCPeerConnection){
         this.remotePeerConnection = rTCPeerConnection;
     }
@@ -63,6 +59,16 @@ export default class MyMedia {
         this.changeMyStream();
     }
 
+    public cancelNoise(value: boolean): void {
+        this.isNoiseSuppression = value;
+        this.changeMyStream();
+    }
+
+    public cancelEcho(value: boolean): void {
+        this.isEchoCancellation = value;
+        this.changeMyStream();
+    }
+
     public async changeMyStream() {
         const audioTrack = this.myStream.getAudioTracks()[0];
         const audioSender = this.remotePeerConnection.getSenders().find((sender: RTCRtpSender) => sender.track.kind === audioTrack.kind);
@@ -78,8 +84,9 @@ export default class MyMedia {
         this.myGainNode.gain.value = value;
     }
 
-    private async init() {
+    public async getMediaStream() {
         this.myStream = await this.getMyMedia();
+        return this.myStream
     }
 
     private modifyGain(): void {

@@ -1,3 +1,5 @@
+import MyMedia from "./myMedia";
+
 class PeerConnectSocket {
     /** You should probably use a different stun server doing commercial stuff **/
     /** Also see: https://gist.github.com/zziuni/3741933 **/
@@ -14,6 +16,8 @@ class PeerConnectSocket {
 
     private isEchoCancellation: boolean = true;
     private isNoiseSuppression: boolean = true;
+
+    private myMedia: MyMedia = new MyMedia;
 
     constructor() {
         this.getUserMedia();
@@ -34,40 +38,20 @@ class PeerConnectSocket {
     }
 
     public cancelNoise(value: boolean): void {
-        this.isNoiseSuppression = value;
-        this.changeMyStream();
+        this.myMedia.cancelNoise(value)
     }
 
     public cancelEcho(value: boolean): void {
-        this.isEchoCancellation = value;
-        this.changeMyStream();
+        this.myMedia.cancelEcho(value)
     }
 
-    public async changeMyStream() {
-        const audioTrack = this.userMediaStream.getAudioTracks()[0];
-        const audioSender = this.remotePeerConnection.getSenders().find((sender: RTCRtpSender) => sender.track.kind === audioTrack.kind);
-
-        this.userMediaStream = await this.getMyMedia();
-
-        const newTrack = this.userMediaStream.getAudioTracks()[0];
-        audioSender.replaceTrack(newTrack);
+    public changeMyStream() {
+        this.myMedia.changeMyStream()
     }
 
     private async getUserMedia() {
-        this.userMediaStream = await this.getMyMedia();
+        this.userMediaStream = await this.myMedia.getMediaStream();
         this.init();
-    }
-
-    private async getMyMedia() {
-        const constraints = {
-            audio: {
-                // deviceId: this.micId,
-                echoCancellation: this.isEchoCancellation,
-                noiseSuppression: this.isNoiseSuppression
-            },
-            video: false
-        };
-        return navigator.mediaDevices.getUserMedia(constraints);
     }
 
     private init(): void {
