@@ -6,6 +6,20 @@ npm run serve
 
 yarn serve
  
+## classes
+
+### PeerConnectSocket (client.ts)
+- RTCPeerConnection으로 SDP전문과 candidate생성하여 signaling서버와 통신하는 역활
+- onTrack으로 받아온 상대방의 음성스트림을 관리
+
+### MyMedia (myMedia.ts)
+- getUserMedia로 생성한 내 음성스트림을 관리하는 역할
+- 내 pc의 마이크/스피커 디바이스 조회 및 변경
+- 내 마이크의 볼륨 조절
+
+### Signaling (signaling.ts)
+- nodejs로 만든 signaling server
+- 클라이언트간 sdp전문 candidate를 교환할 수 있도록 해준다
 
 ## methods
 | method | params | return | 설명 |
@@ -23,11 +37,3 @@ yarn serve
 
 ### client.ts와 myMedia.ts 함수 정리가 안된 상태
 
-- client.ts
-    - RTCPeerConnection으로 SDP전문과 candidate생성하여 signaling서버와 통신하는 역활
-    - onTrack으로 받아온 상대방의 음성스트림을 관리
-
-- myMedia.ts
-    - getUserMedia로 생성한 내 음성스트림을 관리하는 역할
-    - 내 pc의 마이크/스피커 디바이스 조회 및 변경
-    - 내 마이크의 볼륨 조절
