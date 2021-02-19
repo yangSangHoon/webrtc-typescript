@@ -1,8 +1,31 @@
 <html>
 <head>
-<script src="client.js"></script>
+    <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+    <script src="client.js"></script>
+
+    <script>
+        function muteMic(value) {
+            client.muteMic(value);
+        }
+
+        function muteSpeaker(value) {
+            client.muteSpeaker(value);
+        }
+
+        function cancelNoise(value) {
+            client.cancelNoise(value);
+        }
+
+        function cancelEcho(value) {
+            client.cancelEcho(value);
+        }
+    </script>
 </head>
 <body>
 webRtc
+<div>마이크 끄기 : <input type="checkbox" onchange="muteMic(this.checked)"/></div>
+<div>스피커 끄기 : <input type="checkbox" onchange="muteSpeaker(this.checked)"/></div>
+<div>잡음 제거 : <input type="checkbox" onchange="cancelNoise(this.checked)"/></div>
+<div>에코 끄기 : <input type="checkbox" onchange="cancelEcho(this.checked)"/></div>
 </body>
 </html>

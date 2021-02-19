@@ -8,30 +8,71 @@ class PeerConnectSocket {
 
     private peers: Array<any> = [];
     private mediaElements: Array<any> = [];
-    private userMediaStream: any = null;
+    private userMediaStream: MediaStream = null;
+    private audioElement: HTMLAudioElement = null;
+    private remotePeerConnection: RTCPeerConnection = null;
+
+    private isEchoCancellation: boolean = true;
+    private isNoiseSuppression: boolean = true;
 
     constructor() {
         this.getUserMedia();
     }
 
-    private getUserMedia(): void {
-        navigator.getUserMedia({audio: true}, (mediaStream: MediaStream) => {
-            this.userMediaStream = mediaStream;
-            this.init();
-        }, () => {
+    public muteMic(value: boolean): void {
+        this.userMediaStream.getAudioTracks().forEach((track: MediaStreamTrack) => {
+            track.enabled = !value;
         });
+    }
+
+    public muteSpeaker(value: boolean): void {
+        value ? this.audioElement.pause() : this.audioElement.play();
+    }
+
+    public cancelNoise(value: boolean): void {
+        this.isNoiseSuppression = value;
+        this.changeMyStream();
+    }
+
+    public cancelEcho(value: boolean): void {
+        this.isEchoCancellation = value;
+        this.changeMyStream();
+    }
+
+    public async changeMyStream() {
+        const audioTrack = this.userMediaStream.getAudioTracks()[0];
+        const audioSender = this.remotePeerConnection.getSenders().find((sender: RTCRtpSender) => sender.track.kind === audioTrack.kind);
+
+        this.userMediaStream = await this.getMyMedia();
+
+        const newTrack = this.userMediaStream.getAudioTracks()[0];
+        audioSender.replaceTrack(newTrack);
+    }
+
+    private async getUserMedia() {
+        this.userMediaStream = await this.getMyMedia();
+        this.init();
+    }
+
+    private async getMyMedia() {
+        const constraints = {
+            audio: {
+                // deviceId: this.micId,
+                echoCancellation: this.isEchoCancellation,
+                noiseSuppression: this.isNoiseSuppression
+            },
+            video: false
+        };
+        return navigator.mediaDevices.getUserMedia(constraints);
     }
 
     private init(): void {
         this.signalingSocket = (window as any).io('ws://localhost:3000');
         this.signalingSocket.on('connect', () => {
-            console.log('client connect');
-
             this.signalingSocket.emit('join');
         });
 
         this.signalingSocket.on('addPeer', (config: any) => {
-            console.log('addPeer', config)
             const peerId = config.peer_id;
 
             if (peerId in this.peers) {
@@ -40,12 +81,12 @@ class PeerConnectSocket {
                 return;
             }
 
-            const peerConnection: RTCPeerConnection = new RTCPeerConnection({iceServers: this.ICE_SERVERS});
-            this.peers[peerId] = peerConnection;
+            this.remotePeerConnection = new RTCPeerConnection({iceServers: this.ICE_SERVERS});
+            this.peers[peerId] = this.remotePeerConnection;
 
-            (peerConnection as any).addStream(this.userMediaStream);
+            (this.remotePeerConnection as any).addStream(this.userMediaStream);
 
-            peerConnection.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+            this.remotePeerConnection.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
                 if (event.candidate) {
                     this.signalingSocket.emit('relayICECandidate', {
                         'peer_id': peerId,
@@ -57,27 +98,20 @@ class PeerConnectSocket {
                 }
             };
 
-
-
-            /*this.userMediaStream.getTracks().forEach((track: any) => {
-                peerConnection.addTrack(track);
-            });*/
-
-            peerConnection.ontrack = (event) => {
-                console.log('!!!!!!!!!ontrack', event);
-                const elem = document.createElement('audio');
-                elem.srcObject = event.streams[0];
-                elem.play();
+            this.remotePeerConnection.ontrack = (event) => {
+                if(!this.audioElement){
+                    this.audioElement = document.createElement('audio');
+                }
+                this.audioElement.srcObject = event.streams[0];
+                this.audioElement.play();
             };
 
-            console.log('config.should_create_offer', config.should_create_offer)
             if (config.should_create_offer) {
-                peerConnection.createOffer().then((localDescription: any) => {
+                this.remotePeerConnection.createOffer().then((localDescription: any) => {
 
                     localDescription.sdp = localDescription.sdp.replace('minptime=10', 'minptime=10; maxaveragebitrate=7000');
 
-                    console.log('localDescription', localDescription)
-                    peerConnection.setLocalDescription(localDescription, () => {
+                    this.remotePeerConnection.setLocalDescription(localDescription, () => {
                         this.signalingSocket.emit(
                             'relaySessionDescription',
                             {'peer_id': peerId, 'session_description': localDescription}
@@ -100,8 +134,6 @@ class PeerConnectSocket {
             peer.setRemoteDescription(desc, () => {
 
                 if (remoteDescription.type == 'offer') {
-
-                    console.log('Creating answer');
                     peer.createAnswer(
                         (localDescription: any) => {
                             console.log('Answer description is: ', localDescription);
@@ -149,4 +181,4 @@ class PeerConnectSocket {
     }
 }
 
-new PeerConnectSocket();
+const client = new PeerConnectSocket();

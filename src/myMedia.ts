@@ -7,17 +7,21 @@ export default class MyMedia {
     private isEchoCancellation: boolean = false;
     private isNoiseSuppression: boolean = false;
     private audio: any;
-    private myStream: MediaStream | null = null;
+    private myStream: MediaStream = null;
 
-    private privateAudioContext: AudioContext | null = null;
-    private myGainNode: GainNode | null = null;
+    private privateAudioContext: AudioContext = null;
+    private myGainNode: GainNode = null;
 
     private mumbleClient: any = null;
-    private audioElement: HTMLMediaElement | null = null;
-    private remotePeerConnection: RTCPeerConnection | null = null;
+    private audioElement: HTMLMediaElement = null;
+    private remotePeerConnection: RTCPeerConnection = null;
 
     constructor() {
         this.init();
+    }
+
+    public set peer(rTCPeerConnection: RTCPeerConnection){
+        this.remotePeerConnection = rTCPeerConnection;
     }
 
     public async getListModelListOfMyDevices() {
