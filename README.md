@@ -35,5 +35,5 @@ yarn serve
 | micVolumeChange | volume | void | 마이크 볼륨조절 |
 
 
-### client.ts와 myMedia.ts 함수 정리가 안된 상태
+#### client.ts와 myMedia.ts 함수 정리중에 있습니다.
 
