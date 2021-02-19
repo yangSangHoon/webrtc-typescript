@@ -58,6 +58,11 @@ export default class MyMedia {
         }
     }
 
+    public changeMic(deviceId: string): void {
+        this.micId = deviceId;
+        this.changeMyStream();
+    }
+
     public async changeMyStream() {
         const audioTrack = this.myStream.getAudioTracks()[0];
         const audioSender = this.remotePeerConnection.getSenders().find((sender: RTCRtpSender) => sender.track.kind === audioTrack.kind);
@@ -67,6 +72,10 @@ export default class MyMedia {
 
         const newTrack = this.myStream.getAudioTracks()[0];
         audioSender.replaceTrack(newTrack);
+    }
+
+    public micVolumeChange(value: number): void {
+        this.myGainNode.gain.value = value;
     }
 
     private async init() {

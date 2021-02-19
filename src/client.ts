@@ -19,6 +19,10 @@ class PeerConnectSocket {
         this.getUserMedia();
     }
 
+    public speakerVolumeChange(value: number): void {
+        this.audioElement.volume = value;
+    }
+
     public muteMic(value: boolean): void {
         this.userMediaStream.getAudioTracks().forEach((track: MediaStreamTrack) => {
             track.enabled = !value;
